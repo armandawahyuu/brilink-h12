@@ -14,6 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\AutoLoginDev::class,
         ]);
+        $middleware->validateCsrfTokens(except: [
+            'webhook/telegram',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
