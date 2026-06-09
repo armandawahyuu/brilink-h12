@@ -21,6 +21,11 @@
                             <i class="fas fa-cog me-1"></i> Umum
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#tab-saldo" role="tab">
+                            <i class="fas fa-wallet me-1"></i> Saldo
+                        </a>
+                    </li>
                 </ul>
             </div>
             <div class="card-body">
@@ -84,6 +89,41 @@
 
                     <div class="tab-pane" id="tab-umum" role="tabpanel">
                         <p class="text-muted">Pengaturan umum akan tersedia di versi selanjutnya.</p>
+                    </div>
+
+                    <div class="tab-pane" id="tab-saldo" role="tabpanel">
+                        <form method="POST" action="{{ route('settings.update.saldo') }}">
+                            @csrf
+                            @method('PUT')
+
+                            <h5 class="fw-semibold mb-3"><i class="fas fa-wallet text-success me-2"></i>Saldo Awal</h5>
+                            <p class="text-muted mb-4">Masukkan saldo awal untuk mulai pencatatan. Saldo ini digunakan sebagai dasar perhitungan di dashboard.</p>
+
+                            <div class="mb-3">
+                                <label class="form-label">Saldo Kas Awal (Rp)</label>
+                                <input type="number" name="saldo_kas_awal" value="{{ old('saldo_kas_awal', $settings['saldo_kas_awal']) }}" class="form-control @error('saldo_kas_awal') is-invalid @enderror" placeholder="0" min="0">
+                                @error('saldo_kas_awal') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                <small class="text-muted">Uang fisik yang ada di tangan saat mulai pencatatan</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Saldo BRILink Awal (Rp)</label>
+                                <input type="number" name="saldo_brilink_awal" value="{{ old('saldo_brilink_awal', $settings['saldo_brilink_awal']) }}" class="form-control @error('saldo_brilink_awal') is-invalid @enderror" placeholder="0" min="0">
+                                @error('saldo_brilink_awal') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                <small class="text-muted">Saldo di aplikasi BRILink saat mulai pencatatan</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Tanggal Mulai Pencatatan</label>
+                                <input type="date" name="tanggal_mulai" value="{{ old('tanggal_mulai', $settings['tanggal_mulai']) }}" class="form-control @error('tanggal_mulai') is-invalid @enderror">
+                                @error('tanggal_mulai') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                <small class="text-muted">Tanggal mulai pencatatan transaksi</small>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-success">Simpan Saldo Awal</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>

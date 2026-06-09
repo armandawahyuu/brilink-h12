@@ -12,6 +12,7 @@ Route::resource('transactions', TransactionController::class)->except(['show']);
 
 Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
 Route::put('settings', [SettingController::class, 'update'])->name('settings.update');
+Route::put('settings/saldo', [SettingController::class, 'updateSaldo'])->name('settings.update.saldo');
 Route::post('settings/telegram/set-webhook', [SettingController::class, 'setWebhook'])->name('settings.telegram.webhook');
 
 Route::post('webhook/telegram', [TelegramWebhookController::class, 'handle'])->name('telegram.webhook')->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class);
