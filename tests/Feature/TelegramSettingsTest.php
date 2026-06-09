@@ -35,12 +35,12 @@ class TelegramSettingsTest extends TestCase
             'telegram_bot_token' => 'should-not-be-saved',
             'telegram_bot_username' => 'should-not-be-saved',
             'telegram_chat_id' => '98765',
-            'groq_api_key' => 'should-not-be-saved',
+            'ai_api_key' => 'should-not-be-saved',
         ])->assertRedirect(route('settings.index'));
 
         $this->assertNull(Setting::get('telegram_bot_token'));
         $this->assertNull(Setting::get('telegram_bot_username'));
         $this->assertSame('98765', Setting::get('telegram_chat_id'));
-        $this->assertNull(Setting::get('groq_api_key'));
+        $this->assertNull(Setting::get('ai_api_key'));
     }
 }

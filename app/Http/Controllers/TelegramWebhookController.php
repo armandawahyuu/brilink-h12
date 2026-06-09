@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Transaction;
 use App\Models\User;
-use App\Services\GroqOcrService;
+use App\Services\AiOcrService;
 use App\Services\Telegram\ConversationState;
 use App\Services\Telegram\TelegramService;
 use Illuminate\Http\Request;
@@ -122,7 +122,7 @@ class TelegramWebhookController extends Controller
         $filePath = $fileResponse->json('result.file_path');
         $imageUrl = "https://api.telegram.org/file/bot{$token}/{$filePath}";
 
-        $ocr = new GroqOcrService();
+        $ocr = new AiOcrService();
         $result = $ocr->parseReceipt($imageUrl);
 
         if (!$result) {

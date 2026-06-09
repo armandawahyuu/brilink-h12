@@ -4,7 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 
-class GroqOcrService
+class AiOcrService
 {
     public function parseReceipt(string $imageUrl): ?array
     {

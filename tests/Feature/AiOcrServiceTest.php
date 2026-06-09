@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Services\GroqOcrService;
+use App\Services\AiOcrService;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -28,7 +28,7 @@ class AiOcrServiceTest extends TestCase
             ]),
         ]);
 
-        $result = app(GroqOcrService::class)->parseReceipt('https://example.test/receipt.jpg');
+        $result = app(AiOcrService::class)->parseReceipt('https://example.test/receipt.jpg');
 
         $this->assertSame('tarik_tunai', $result['type']);
         $this->assertSame(100000, $result['amount']);
