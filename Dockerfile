@@ -27,13 +27,13 @@ RUN composer dump-autoload --optimize \
     && php artisan route:clear \
     && php artisan view:clear
 
-RUN mkdir -p /app/database && touch /app/database/database.sqlite
+RUN mkdir -p /data && touch /data/database.sqlite
 RUN mkdir -p /app/storage/logs \
     /app/storage/framework/sessions \
     /app/storage/framework/views \
     /app/storage/framework/cache
 
-RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache /app/database
+RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache /data
 
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 COPY docker/supervisord.conf /etc/supervisord.conf
