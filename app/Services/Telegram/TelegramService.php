@@ -17,6 +17,11 @@ class TelegramService
         return config('services.telegram.allowed_chat_id') ?: Setting::get('telegram_chat_id');
     }
 
+    public function getWebhookSecret(): ?string
+    {
+        return config('services.telegram.webhook_secret');
+    }
+
     public function getUsername(): ?string
     {
         return config('services.telegram.bot_username') ?: Setting::get('telegram_bot_username');
@@ -45,9 +50,14 @@ class TelegramService
         $token = $this->getToken();
         if (!$token) return ['ok' => false, 'description' => 'Token not set'];
 
-        $response = Http::post("https://api.telegram.org/bot{$token}/setWebhook", [
-            'url' => $url,
-        ]);
+        $payload = ['url' => $url];
+
+        $secret = $this->getWebhookSecret();
+        if ($secret) {
+            $payload['secret_token'] = $secret;
+        }
+
+        $response = Http::post("https://api.telegram.org/bot{$token}/setWebhook", $payload);
 
         return $response->json();
     }

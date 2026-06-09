@@ -30,6 +30,16 @@ class TelegramWebhookController extends Controller
 
     public function handle(Request $request): Response
     {
+        // Validasi secret token webhook (kalau diset di server).
+        // Mencegah pihak lain mengirim update palsu ke endpoint ini.
+        $expectedSecret = $this->telegram->getWebhookSecret();
+        if ($expectedSecret) {
+            $sentSecret = $request->header('X-Telegram-Bot-Api-Secret-Token');
+            if (!hash_equals($expectedSecret, (string) $sentSecret)) {
+                return response('forbidden', 403);
+            }
+        }
+
         $update = $request->all();
         $message = $update['message'] ?? $update['callback_query']['message'] ?? null;
         $callbackQuery = $update['callback_query'] ?? null;
@@ -229,7 +239,14 @@ class TelegramWebhookController extends Controller
     {
         $flows = Transaction::getFlows($state['type']);
 
-        $user = User::first();
+        // Petakan transaksi ke user berdasarkan telegram_chat_id, fallback ke user pertama.
+        $user = User::where('telegram_chat_id', (string) $chatId)->first() ?? User::first();
+
+        if (!$user) {
+            $this->telegram->sendMessage($chatId, "Belum ada user terdaftar di sistem. Hubungi admin.");
+            ConversationState::clear($chatId);
+            return;
+        }
 
         Transaction::create([
             'user_id' => $user->id,

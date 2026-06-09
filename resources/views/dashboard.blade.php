@@ -7,6 +7,58 @@
 
 @section('content')
 <div class="row">
+    <div class="col-xl-4 col-md-6">
+        <div class="card border-success border-opacity-25">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1">Saldo Kas (Uang Tunai)</p>
+                        <h3 class="mb-0 text-success">Rp {{ number_format($balance['kas'], 0, ',', '.') }}</h3>
+                        <small class="text-muted">Saldo awal: Rp {{ number_format($balance['kas_awal'], 0, ',', '.') }}</small>
+                    </div>
+                    <div class="avatar avatar-md avatar-label-success">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6">
+        <div class="card border-info border-opacity-25">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1">Saldo BRILink</p>
+                        <h3 class="mb-0 text-info">Rp {{ number_format($balance['saldo_brilink'], 0, ',', '.') }}</h3>
+                        <small class="text-muted">Saldo awal: Rp {{ number_format($balance['brilink_awal'], 0, ',', '.') }}</small>
+                    </div>
+                    <div class="avatar avatar-md avatar-label-info">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-12">
+        <div class="card border-primary border-opacity-25">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1">Total Pendapatan Fee</p>
+                        <h3 class="mb-0 text-primary">Rp {{ number_format($balance['total_fee'], 0, ',', '.') }}</h3>
+                        <small class="text-muted">Akumulasi sejak mulai pencatatan</small>
+                    </div>
+                    <div class="avatar avatar-md avatar-label-primary">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h5 class="mb-3 mt-2 text-muted fw-semibold"><i class="fas fa-calendar-day me-1"></i> Ringkasan Hari Ini</h5>
+<div class="row">
     <div class="col-xl-2 col-md-4">
         <div class="card">
             <div class="card-body">
