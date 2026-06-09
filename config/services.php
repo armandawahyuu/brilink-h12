@@ -35,4 +35,16 @@ return [
         ],
     ],
 
+    'telegram' => [
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'bot_username' => env('TELEGRAM_BOT_USERNAME'),
+        'allowed_chat_id' => env('TELEGRAM_ALLOWED_CHAT_ID'),
+    ],
+
+    'ai' => [
+        'api_key' => env('AI_API_KEY'),
+        'base_url' => rtrim(env('AI_BASE_URL', 'https://ai.sumopod.com/v1'), '/'),
+        'ocr_model' => env('AI_OCR_MODEL', 'gemini/gemini-2.5-flash-lite'),
+    ],
+
 ];

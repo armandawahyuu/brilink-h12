@@ -18,7 +18,7 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" data-bs-toggle="tab" href="#tab-umum" role="tab">
-                            <i class="fas fa-cog me-1"></i> Umum
+                            <i class="fas fa-user-shield me-1"></i> Akun
                         </a>
                     </li>
                     <li class="nav-item">
@@ -36,22 +36,15 @@
                             @method('PUT')
 
                             <h5 class="fw-semibold mb-3"><i class="fab fa-telegram text-info me-2"></i>Telegram Bot</h5>
-                            <p class="text-muted mb-4">Hubungkan Telegram Bot untuk input transaksi via chat. Buat bot di <strong>@BotFather</strong> lalu masukkan token dan username di bawah.</p>
+                            <p class="text-muted mb-4">Bot induk dikelola dari server. User cukup chat ke bot, tanpa membuat bot masing-masing.</p>
 
-                            <div class="mb-3">
-                                <label class="form-label">Bot Token</label>
-                                <input type="text" name="telegram_bot_token" value="{{ old('telegram_bot_token', $settings['telegram_bot_token']) }}" class="form-control @error('telegram_bot_token') is-invalid @enderror" placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz">
-                                @error('telegram_bot_token') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                <small class="text-muted">Dapatkan dari @BotFather di Telegram</small>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Bot Username</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">@</span>
-                                    <input type="text" name="telegram_bot_username" value="{{ old('telegram_bot_username', $settings['telegram_bot_username']) }}" class="form-control @error('telegram_bot_username') is-invalid @enderror" placeholder="brilink_h12_bot">
+                            <div class="alert {{ $telegram['configured'] ? 'alert-success' : 'alert-warning' }}">
+                                <div class="fw-semibold">
+                                    {{ $telegram['configured'] ? 'Bot induk aktif' : 'Bot induk belum dikonfigurasi di server' }}
                                 </div>
-                                @error('telegram_bot_username') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                @if($telegram['username'])
+                                    <div>Username: <a href="https://t.me/{{ ltrim($telegram['username'], '@') }}" target="_blank" rel="noopener">{{ '@' . ltrim($telegram['username'], '@') }}</a></div>
+                                @endif
                             </div>
 
                             <div class="mb-3">
@@ -62,14 +55,15 @@
                             </div>
 
                             <hr>
-                            <h5 class="fw-semibold mb-3"><i class="fas fa-brain text-warning me-2"></i>AI OCR (Groq)</h5>
-                            <p class="text-muted mb-4">Untuk fitur baca struk otomatis via foto. Dapatkan API key dari <strong>console.groq.com</strong></p>
+                            <h5 class="fw-semibold mb-3"><i class="fas fa-brain text-warning me-2"></i>AI OCR</h5>
+                            <p class="text-muted mb-4">AI untuk baca struk dikelola dari server, jadi API key tidak perlu diisi di aplikasi.</p>
 
-                            <div class="mb-3">
-                                <label class="form-label">Groq API Key</label>
-                                <input type="password" name="groq_api_key" value="{{ old('groq_api_key', $settings['groq_api_key']) }}" class="form-control @error('groq_api_key') is-invalid @enderror" placeholder="gsk_...">
-                                @error('groq_api_key') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                <small class="text-muted">Dapatkan dari console.groq.com</small>
+                            <div class="alert {{ $ai['configured'] ? 'alert-success' : 'alert-warning' }}">
+                                <div class="fw-semibold">
+                                    {{ $ai['configured'] ? 'AI OCR aktif' : 'AI OCR belum dikonfigurasi di server' }}
+                                </div>
+                                <div>Model: <code>{{ $ai['ocr_model'] }}</code></div>
+                                <div>Endpoint: <code>{{ $ai['base_url'] }}</code></div>
                             </div>
 
                             <div class="d-flex gap-2">
@@ -77,18 +71,46 @@
                             </div>
                         </form>
 
-                        @if(\App\Models\Setting::get('telegram_bot_token'))
+                        @if($telegram['configured'])
                         <hr>
                         <form method="POST" action="{{ route('settings.telegram.webhook') }}">
                             @csrf
-                            <p class="text-muted mb-2">Setelah token disimpan, aktifkan webhook agar bot bisa menerima pesan:</p>
+                            <p class="text-muted mb-2">Webhook diarahkan ke domain aplikasi:</p>
                             <button type="submit" class="btn btn-info btn-sm"><i class="fas fa-link me-1"></i> Set Webhook</button>
                         </form>
                         @endif
                     </div>
 
                     <div class="tab-pane" id="tab-umum" role="tabpanel">
-                        <p class="text-muted">Pengaturan umum akan tersedia di versi selanjutnya.</p>
+                        <form method="POST" action="{{ route('settings.update.password') }}">
+                            @csrf
+                            @method('PUT')
+
+                            <h5 class="fw-semibold mb-3"><i class="fas fa-key text-primary me-2"></i>Ganti Password Admin</h5>
+                            <p class="text-muted mb-4">Gunakan password yang kuat dan hanya dibagikan ke orang yang memang mengelola pencatatan.</p>
+
+                            <div class="mb-3">
+                                <label class="form-label">Password Sekarang <span class="text-danger">*</span></label>
+                                <input type="password" name="current_password" required autocomplete="current-password" class="form-control @error('current_password') is-invalid @enderror">
+                                @error('current_password') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Password Baru <span class="text-danger">*</span></label>
+                                <input type="password" name="password" required autocomplete="new-password" class="form-control @error('password') is-invalid @enderror">
+                                @error('password') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                <small class="text-muted">Minimal 10 karakter, mengandung huruf dan angka.</small>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label">Konfirmasi Password Baru <span class="text-danger">*</span></label>
+                                <input type="password" name="password_confirmation" required autocomplete="new-password" class="form-control">
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">Ganti Password</button>
+                            </div>
+                        </form>
                     </div>
 
                     <div class="tab-pane" id="tab-saldo" role="tabpanel">
@@ -139,13 +161,10 @@
             <div class="card-body">
                 <h6 class="fw-semibold">Cara Setup Telegram Bot:</h6>
                 <ol class="text-muted ps-3">
-                    <li>Buka Telegram, cari <strong>@BotFather</strong></li>
-                    <li>Kirim <code>/newbot</code></li>
-                    <li>Ikuti instruksi, beri nama bot</li>
-                    <li>Copy token yang diberikan</li>
-                    <li>Paste token di form ini</li>
-                    <li>Isi username bot (tanpa @)</li>
-                    <li>Klik Simpan</li>
+                    <li>Buka Telegram dan cari bot induk aplikasi</li>
+                    <li>Kirim <code>/start</code></li>
+                    <li>Copy Chat ID yang dibalas bot</li>
+                    <li>Masukkan Chat ID di form ini untuk membatasi akses</li>
                 </ol>
                 <hr>
                 <p class="text-muted mb-0"><small>Setelah token disimpan, bot akan otomatis aktif menerima pesan untuk pencatatan transaksi.</small></p>

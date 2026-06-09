@@ -9,12 +9,17 @@ class TelegramService
 {
     public function getToken(): ?string
     {
-        return Setting::get('telegram_bot_token');
+        return config('services.telegram.bot_token') ?: Setting::get('telegram_bot_token');
     }
 
     public function getAllowedChatId(): ?string
     {
-        return Setting::get('telegram_chat_id');
+        return config('services.telegram.allowed_chat_id') ?: Setting::get('telegram_chat_id');
+    }
+
+    public function getUsername(): ?string
+    {
+        return config('services.telegram.bot_username') ?: Setting::get('telegram_bot_username');
     }
 
     public function sendMessage(int|string $chatId, string $text, array $replyMarkup = []): void

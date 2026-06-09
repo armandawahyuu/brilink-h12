@@ -5,37 +5,41 @@ namespace App\Http\Controllers;
 use App\Models\Setting;
 use App\Services\Telegram\TelegramService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 class SettingController extends Controller
 {
     public function index()
     {
         $settings = [
-            'telegram_bot_token' => Setting::get('telegram_bot_token'),
-            'telegram_bot_username' => Setting::get('telegram_bot_username'),
             'telegram_chat_id' => Setting::get('telegram_chat_id'),
-            'groq_api_key' => Setting::get('groq_api_key'),
             'saldo_kas_awal' => Setting::get('saldo_kas_awal', '0'),
             'saldo_brilink_awal' => Setting::get('saldo_brilink_awal', '0'),
             'tanggal_mulai' => Setting::get('tanggal_mulai', date('Y-m-d')),
         ];
 
-        return view('settings.index', compact('settings'));
+        $telegram = [
+            'username' => config('services.telegram.bot_username'),
+            'configured' => (bool) config('services.telegram.bot_token'),
+        ];
+
+        $ai = [
+            'configured' => (bool) config('services.ai.api_key'),
+            'base_url' => config('services.ai.base_url'),
+            'ocr_model' => config('services.ai.ocr_model'),
+        ];
+
+        return view('settings.index', compact('settings', 'telegram', 'ai'));
     }
 
     public function update(Request $request)
     {
         $validated = $request->validate([
-            'telegram_bot_token' => 'nullable|string|max:255',
-            'telegram_bot_username' => 'nullable|string|max:255',
             'telegram_chat_id' => 'nullable|string|max:255',
-            'groq_api_key' => 'nullable|string|max:255',
         ]);
 
-        Setting::set('telegram_bot_token', $validated['telegram_bot_token'], 'telegram');
-        Setting::set('telegram_bot_username', $validated['telegram_bot_username'], 'telegram');
         Setting::set('telegram_chat_id', $validated['telegram_chat_id'], 'telegram');
-        Setting::set('groq_api_key', $validated['groq_api_key'], 'ai');
 
         return redirect()->route('settings.index')
             ->with('success', 'Pengaturan berhasil disimpan.');
@@ -55,6 +59,21 @@ class SettingController extends Controller
 
         return redirect()->route('settings.index')
             ->with('success', 'Saldo awal berhasil disimpan.');
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $validated = $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', 'confirmed', Password::min(10)->letters()->numbers()],
+        ]);
+
+        $request->user()->update([
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        return redirect()->route('settings.index')
+            ->with('success', 'Password admin berhasil diganti.');
     }
 
     public function setWebhook(TelegramService $telegram)

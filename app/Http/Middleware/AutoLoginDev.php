@@ -11,7 +11,7 @@ class AutoLoginDev
 {
     public function handle(Request $request, Closure $next)
     {
-        if (!Auth::check()) {
+        if (app()->environment('local') && !Auth::check()) {
             $user = User::first();
             if ($user) {
                 Auth::login($user);

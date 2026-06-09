@@ -2,15 +2,17 @@
 
 namespace App\Services;
 
-use App\Models\Setting;
 use Illuminate\Support\Facades\Http;
 
 class GroqOcrService
 {
     public function parseReceipt(string $imageUrl): ?array
     {
-        $apiKey = Setting::get('groq_api_key');
+        $apiKey = config('services.ai.api_key');
         if (!$apiKey) return null;
+
+        $baseUrl = config('services.ai.base_url');
+        $model = config('services.ai.ocr_model');
 
         $prompt = <<<PROMPT
 Kamu adalah asisten yang membaca struk transaksi BRILink. Dari gambar struk ini, extract informasi berikut dalam format JSON:
@@ -31,8 +33,8 @@ PROMPT;
 
         $response = Http::withHeaders([
             'Authorization' => "Bearer {$apiKey}",
-        ])->post('https://api.groq.com/openai/v1/chat/completions', [
-            'model' => 'meta-llama/llama-4-scout-17b-16e-instruct',
+        ])->post("{$baseUrl}/chat/completions", [
+            'model' => $model,
             'messages' => [
                 [
                     'role' => 'user',

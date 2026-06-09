@@ -48,7 +48,10 @@
                                 </div>
                             </div>
                             <div class="card-footer rounded-0">
-                                <a href="#" class="btn btn-label-danger btn-sm">Sign out</a>
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button type="submit" class="btn btn-label-danger btn-sm">Sign out</button>
+                                </form>
                             </div>
                         </div>
                     </div>
