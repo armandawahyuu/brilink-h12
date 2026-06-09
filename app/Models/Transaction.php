@@ -10,6 +10,7 @@ class Transaction extends Model
     protected $fillable = [
         'user_id',
         'type',
+        'payment_method',
         'amount',
         'quantity',
         'fee',
@@ -48,8 +49,14 @@ class Transaction extends Model
         return $this->belongsTo(User::class);
     }
 
-    public static function getFlows(string $type): array
+    public static function getFlows(string $type, string $method = 'tunai'): array
     {
+        // Metode EDC (gesek kartu): uang dari saldo kartu pelanggan sendiri,
+        // jadi kas & saldo BRILink agen tidak bergerak. Agen hanya dapat fee.
+        if ($method === 'edc') {
+            return ['kas_flow' => 'none', 'saldo_flow' => 'none'];
+        }
+
         return self::TYPE_FLOW_MAP[$type] ?? ['kas_flow' => 'none', 'saldo_flow' => 'none'];
     }
 

@@ -31,6 +31,16 @@
                         @error('type') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label">Metode Pembayaran <span class="text-danger">*</span></label>
+                        <select name="payment_method" id="method-select" required class="form-select @error('payment_method') is-invalid @enderror">
+                            <option value="tunai" {{ old('payment_method', $transaction->payment_method) == 'tunai' ? 'selected' : '' }}>Tunai (pelanggan bayar cash)</option>
+                            <option value="edc" {{ old('payment_method', $transaction->payment_method) == 'edc' ? 'selected' : '' }}>Kartu / EDC (gesek, dari saldo pelanggan)</option>
+                        </select>
+                        <small class="text-muted">Tunai: kas & saldo BRILink bergerak. EDC: hanya fee yang dicatat.</small>
+                        @error('payment_method') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+
                     <div class="mb-3" id="flow-override" style="{{ old('type', $transaction->type) === 'lainnya' ? '' : 'display:none' }}">
                         <div class="row">
                             <div class="col-6">
@@ -94,8 +104,14 @@
 
 @push('js')
 <script>
-    document.getElementById('type-select').addEventListener('change', function() {
-        document.getElementById('flow-override').style.display = this.value === 'lainnya' ? '' : 'none';
-    });
+    function refreshFlowOverride() {
+        var type = document.getElementById('type-select').value;
+        var method = document.getElementById('method-select').value;
+        var show = (type === 'lainnya' && method === 'tunai');
+        document.getElementById('flow-override').style.display = show ? '' : 'none';
+    }
+    document.getElementById('type-select').addEventListener('change', refreshFlowOverride);
+    document.getElementById('method-select').addEventListener('change', refreshFlowOverride);
+    refreshFlowOverride();
 </script>
 @endpush

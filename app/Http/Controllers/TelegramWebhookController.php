@@ -144,7 +144,7 @@ class TelegramWebhookController extends Controller
         $amountFormatted = number_format($result['amount'], 0, ',', '.');
 
         ConversationState::set($chatId, [
-            'step' => 'fee',
+            'step' => 'method',
             'type' => $result['type'],
             'amount' => $result['amount'],
             'quantity' => $result['quantity'],
@@ -154,9 +154,9 @@ class TelegramWebhookController extends Controller
         $msg = "Hasil baca struk:\n\n";
         $msg .= "Jenis: <b>{$label}</b>\n";
         $msg .= "Nominal: Rp {$amountFormatted} x {$result['quantity']}\n\n";
-        $msg .= "Fee yang didapat berapa? (angka, misal: 5000)";
+        $msg .= "Metode pembayaran?";
 
-        $this->telegram->sendMessage($chatId, $msg);
+        $this->telegram->sendMessage($chatId, $msg, $this->methodKeyboard());
     }
 
     private function handleCallback(string $chatId, string $data, ?string $callbackQueryId = null): void
@@ -164,10 +164,9 @@ class TelegramWebhookController extends Controller
         if (str_starts_with($data, 'type:')) {
             $type = str_replace('type:', '', $data);
             $label = self::TYPE_LABELS[$type] ?? $type;
-            $flows = Transaction::getFlows($type);
 
             ConversationState::set($chatId, [
-                'step' => 'amount',
+                'step' => 'method',
                 'type' => $type,
             ]);
 
@@ -175,7 +174,47 @@ class TelegramWebhookController extends Controller
                 $this->telegram->answerCallbackQuery($callbackQueryId, "Dipilih: {$label}");
             }
 
+            $this->telegram->sendMessage($chatId, "Jenis: <b>{$label}</b>\n\nMetode pembayaran?", $this->methodKeyboard());
+            return;
+        }
+
+        if (str_starts_with($data, 'method:')) {
+            $method = str_replace('method:', '', $data);
+            $state = ConversationState::get($chatId);
+
+            if (!$state || !isset($state['type'])) {
+                $this->telegram->sendMessage($chatId, "Sesi habis. Ketik /catat untuk mulai ulang.");
+                return;
+            }
+
+            $state['payment_method'] = $method === 'edc' ? 'edc' : 'tunai';
+            ConversationState::set($chatId, $state);
+
+            $type = $state['type'];
+            $label = self::TYPE_LABELS[$type] ?? $type;
+            $flows = Transaction::getFlows($type, $state['payment_method']);
+            $methodLabel = $state['payment_method'] === 'edc' ? 'Kartu / EDC' : 'Tunai';
+
+            if ($callbackQueryId) {
+                $this->telegram->answerCallbackQuery($callbackQueryId, "Metode: {$methodLabel}");
+            }
+
+            // Kalau nominal sudah ada (dari OCR struk), langsung tanya fee.
+            if (isset($state['amount'])) {
+                $state['step'] = 'fee';
+                ConversationState::set($chatId, $state);
+                $msg = "Jenis: <b>{$label}</b>\n";
+                $msg .= "Metode: <b>{$methodLabel}</b>\n\n";
+                $msg .= "Fee yang didapat berapa? (angka, misal: 5000. Ketik 0 jika tidak ada)";
+                $this->telegram->sendMessage($chatId, $msg);
+                return;
+            }
+
+            $state['step'] = 'amount';
+            ConversationState::set($chatId, $state);
+
             $msg = "Jenis: <b>{$label}</b>\n";
+            $msg .= "Metode: <b>{$methodLabel}</b>\n";
             $msg .= "Kas: <b>" . $this->flowLabel($flows['kas_flow']) . "</b>\n";
             $msg .= "Saldo BRILink: <b>" . $this->flowLabel($flows['saldo_flow']) . "</b>\n\n";
             $msg .= "Nominal per transaksi? Ketik angka saja, contoh: <code>1000000</code>";
@@ -237,7 +276,8 @@ class TelegramWebhookController extends Controller
 
     private function saveTransaction(string $chatId, array $state): void
     {
-        $flows = Transaction::getFlows($state['type']);
+        $method = $state['payment_method'] ?? 'tunai';
+        $flows = Transaction::getFlows($state['type'], $method);
 
         // Petakan transaksi ke user berdasarkan telegram_chat_id, fallback ke user pertama.
         $user = User::where('telegram_chat_id', (string) $chatId)->first() ?? User::first();
@@ -251,6 +291,7 @@ class TelegramWebhookController extends Controller
         Transaction::create([
             'user_id' => $user->id,
             'type' => $state['type'],
+            'payment_method' => $method,
             'amount' => $state['amount'],
             'quantity' => $state['quantity'],
             'fee' => $state['fee'],
@@ -263,12 +304,13 @@ class TelegramWebhookController extends Controller
         ConversationState::clear($chatId);
 
         $label = self::TYPE_LABELS[$state['type']] ?? $state['type'];
+        $methodLabel = $method === 'edc' ? 'Kartu / EDC' : 'Tunai';
         $total = number_format($state['amount'] * $state['quantity'], 0, ',', '.');
         $fee = number_format($state['fee'], 0, ',', '.');
-        $flows = Transaction::getFlows($state['type']);
 
         $msg = "Tercatat!\n\n";
         $msg .= "Jenis: <b>{$label}</b>\n";
+        $msg .= "Metode: <b>{$methodLabel}</b>\n";
         $msg .= "Nominal: Rp " . number_format($state['amount'], 0, ',', '.') . " x {$state['quantity']}\n";
         $msg .= "Total: Rp {$total}\n";
         $msg .= "Fee: Rp {$fee}\n";
@@ -294,6 +336,18 @@ class TelegramWebhookController extends Controller
                 [
                     ['text' => 'Pembayaran', 'callback_data' => 'type:pembayaran'],
                     ['text' => 'Lainnya', 'callback_data' => 'type:lainnya'],
+                ],
+            ],
+        ];
+    }
+
+    private function methodKeyboard(): array
+    {
+        return [
+            'inline_keyboard' => [
+                [
+                    ['text' => 'Tunai (cash)', 'callback_data' => 'method:tunai'],
+                    ['text' => 'Kartu / EDC', 'callback_data' => 'method:edc'],
                 ],
             ],
         ];

@@ -41,9 +41,11 @@ class DashboardController extends Controller
         $totalSaldoIn = (clone $allTime)->where('saldo_flow', 'in')->sum(DB::raw('amount * quantity'));
         $totalSaldoOut = (clone $allTime)->where('saldo_flow', 'out')->sum(DB::raw('amount * quantity'));
         $totalFeeAll = (clone $allTime)->sum('fee');
+        // Fee tunai masuk ke kas fisik; fee EDC masuk ke rekening/bank (tidak dilacak saldonya).
+        $totalFeeTunai = (clone $allTime)->where('payment_method', 'tunai')->sum('fee');
 
         $balance = [
-            'kas' => $saldoKasAwal + $totalKasIn - $totalKasOut + $totalFeeAll,
+            'kas' => $saldoKasAwal + $totalKasIn - $totalKasOut + $totalFeeTunai,
             'saldo_brilink' => $saldoBrilinkAwal + $totalSaldoIn - $totalSaldoOut,
             'total_fee' => $totalFeeAll,
             'kas_awal' => $saldoKasAwal,
