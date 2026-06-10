@@ -37,7 +37,7 @@ class TelegramWebhookController extends Controller
         if ($callbackQuery) {
             $chatId = $callbackQuery['message']['chat']['id'];
             $data = $callbackQuery['data'];
-            $this->handleCallback($chatId, $data);
+            $this->handleCallback($chatId, $data, $callbackQuery['id'] ?? null);
             return response('ok');
         }
 
@@ -75,12 +75,13 @@ class TelegramWebhookController extends Controller
 
     private function handleStart(string $chatId): void
     {
-        $msg = "Halo! Ini bot pencatatan transaksi BRILink H12.\n\n";
+        $msg = "Halo! Ini bot BRILink H12 untuk catat transaksi harian.\n\n";
         $msg .= "Chat ID kamu: <code>{$chatId}</code>\n\n";
-        $msg .= "Perintah:\n";
-        $msg .= "/catat - Catat transaksi baru (manual)\n";
-        $msg .= "/batal - Batalkan input yang sedang berjalan\n\n";
-        $msg .= "Atau langsung kirim <b>foto struk</b> untuk input otomatis via AI.";
+        $msg .= "Ketik /catat untuk input manual.\n";
+        $msg .= "Ketik /batal kalau mau membatalkan input yang sedang berjalan.\n\n";
+        $msg .= "Logic saldo mengikuti backend:\n";
+        $msg .= $this->typeSummaryText();
+        $msg .= "\nFee dicatat terpisah sebagai pendapatan fee.";
 
         $this->telegram->sendMessage($chatId, $msg);
     }
@@ -89,24 +90,10 @@ class TelegramWebhookController extends Controller
     {
         ConversationState::set($chatId, ['step' => 'type']);
 
-        $keyboard = [
-            'inline_keyboard' => [
-                [
-                    ['text' => 'Tarik Tunai', 'callback_data' => 'type:tarik_tunai'],
-                    ['text' => 'Setor Tunai', 'callback_data' => 'type:setor_tunai'],
-                ],
-                [
-                    ['text' => 'Transfer', 'callback_data' => 'type:transfer'],
-                    ['text' => 'Topup E-Wallet', 'callback_data' => 'type:topup_ewallet'],
-                ],
-                [
-                    ['text' => 'Pembayaran', 'callback_data' => 'type:pembayaran'],
-                    ['text' => 'Lainnya', 'callback_data' => 'type:lainnya'],
-                ],
-            ],
-        ];
+        $msg = "Pilih jenis transaksi.\n\n";
+        $msg .= "Arus kas dan saldo BRILink akan diisi otomatis sesuai logic backend.";
 
-        $this->telegram->sendMessage($chatId, "Pilih jenis transaksi:", $keyboard);
+        $this->telegram->sendMessage($chatId, $msg, $this->typeKeyboard());
     }
 
     private function handleBatal(string $chatId): void
@@ -162,18 +149,28 @@ class TelegramWebhookController extends Controller
         $this->telegram->sendMessage($chatId, $msg);
     }
 
-    private function handleCallback(string $chatId, string $data): void
+    private function handleCallback(string $chatId, string $data, ?string $callbackQueryId = null): void
     {
         if (str_starts_with($data, 'type:')) {
             $type = str_replace('type:', '', $data);
             $label = self::TYPE_LABELS[$type] ?? $type;
+            $flows = Transaction::getFlows($type);
 
             ConversationState::set($chatId, [
                 'step' => 'amount',
                 'type' => $type,
             ]);
 
-            $this->telegram->sendMessage($chatId, "Jenis: <b>{$label}</b>\n\nNominal per transaksi? (angka saja, misal: 1000000)");
+            if ($callbackQueryId) {
+                $this->telegram->answerCallbackQuery($callbackQueryId, "Dipilih: {$label}");
+            }
+
+            $msg = "Jenis: <b>{$label}</b>\n";
+            $msg .= "Kas: <b>" . $this->flowLabel($flows['kas_flow']) . "</b>\n";
+            $msg .= "Saldo BRILink: <b>" . $this->flowLabel($flows['saldo_flow']) . "</b>\n\n";
+            $msg .= "Nominal per transaksi? Ketik angka saja, contoh: <code>1000000</code>";
+
+            $this->telegram->sendMessage($chatId, $msg);
         }
     }
 
@@ -251,15 +248,60 @@ class TelegramWebhookController extends Controller
         $label = self::TYPE_LABELS[$state['type']] ?? $state['type'];
         $total = number_format($state['amount'] * $state['quantity'], 0, ',', '.');
         $fee = number_format($state['fee'], 0, ',', '.');
+        $flows = Transaction::getFlows($state['type']);
 
         $msg = "Tercatat!\n\n";
         $msg .= "Jenis: <b>{$label}</b>\n";
         $msg .= "Nominal: Rp " . number_format($state['amount'], 0, ',', '.') . " x {$state['quantity']}\n";
         $msg .= "Total: Rp {$total}\n";
-        $msg .= "Fee: Rp {$fee}\n\n";
+        $msg .= "Fee: Rp {$fee}\n";
+        $msg .= "Kas: <b>" . $this->flowLabel($flows['kas_flow']) . "</b>\n";
+        $msg .= "Saldo BRILink: <b>" . $this->flowLabel($flows['saldo_flow']) . "</b>\n\n";
         $msg .= "/catat - Catat lagi";
 
         $this->telegram->sendMessage($chatId, $msg);
+    }
+
+    private function typeKeyboard(): array
+    {
+        return [
+            'inline_keyboard' => [
+                [
+                    ['text' => 'Tarik Tunai', 'callback_data' => 'type:tarik_tunai'],
+                    ['text' => 'Setor Tunai', 'callback_data' => 'type:setor_tunai'],
+                ],
+                [
+                    ['text' => 'Transfer', 'callback_data' => 'type:transfer'],
+                    ['text' => 'Topup E-Wallet', 'callback_data' => 'type:topup_ewallet'],
+                ],
+                [
+                    ['text' => 'Pembayaran', 'callback_data' => 'type:pembayaran'],
+                    ['text' => 'Lainnya', 'callback_data' => 'type:lainnya'],
+                ],
+            ],
+        ];
+    }
+
+    private function typeSummaryText(): string
+    {
+        $lines = [];
+
+        foreach (self::TYPE_LABELS as $type => $label) {
+            $flows = Transaction::getFlows($type);
+            $lines[] = "- {$label}: Kas " . strtolower($this->flowLabel($flows['kas_flow']))
+                . ", Saldo " . strtolower($this->flowLabel($flows['saldo_flow']));
+        }
+
+        return implode("\n", $lines) . "\n";
+    }
+
+    private function flowLabel(string $flow): string
+    {
+        return match ($flow) {
+            'in' => 'Masuk',
+            'out' => 'Keluar',
+            default => 'Tidak berubah',
+        };
     }
 
     private function parseNumber(string $text): ?float

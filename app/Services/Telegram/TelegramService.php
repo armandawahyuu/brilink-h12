@@ -46,4 +46,46 @@ class TelegramService
 
         return $response->json();
     }
+
+    public function deleteWebhook(bool $dropPendingUpdates = false): array
+    {
+        $token = $this->getToken();
+        if (!$token) return ['ok' => false, 'description' => 'Token not set'];
+
+        $response = Http::post("https://api.telegram.org/bot{$token}/deleteWebhook", [
+            'drop_pending_updates' => $dropPendingUpdates,
+        ]);
+
+        return $response->json();
+    }
+
+    public function getUpdates(int $offset = 0, int $timeout = 25): array
+    {
+        $token = $this->getToken();
+        if (!$token) return ['ok' => false, 'description' => 'Token not set'];
+
+        $response = Http::timeout($timeout + 5)->get("https://api.telegram.org/bot{$token}/getUpdates", [
+            'offset' => $offset,
+            'timeout' => $timeout,
+            'allowed_updates' => json_encode(['message', 'callback_query']),
+        ]);
+
+        return $response->json();
+    }
+
+    public function answerCallbackQuery(string $callbackQueryId, string $text = ''): void
+    {
+        $token = $this->getToken();
+        if (!$token) return;
+
+        $payload = [
+            'callback_query_id' => $callbackQueryId,
+        ];
+
+        if ($text !== '') {
+            $payload['text'] = $text;
+        }
+
+        Http::post("https://api.telegram.org/bot{$token}/answerCallbackQuery", $payload);
+    }
 }
